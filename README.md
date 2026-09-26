@@ -4,6 +4,13 @@ A small always-on-top overlay for Windows that forces **Hearthstone** to reconne
 
 It finds the TCP connections owned by `Hearthstone.exe`, lets you drop the match-server connection, and the game immediately reconnects — the same thing that happens after a short network hiccup, but on demand. Handy for skipping long animations or recovering from a stuck game state.
 
+<p align="center">
+  <img src="docs/screenshots/overlay.png" alt="HS Reconnect overlay with the match-server connection" width="300">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/compact.png" alt="HS Reconnect in compact mode" width="280">
+</p>
+<p align="center"><sub>Full overlay · Compact mode</sub></p>
+
 ## Requirements
 
 - **Administrator rights.** Windows only lets elevated processes reset TCP connections.
