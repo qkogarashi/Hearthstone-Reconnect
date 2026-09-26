@@ -19,9 +19,6 @@ It finds the TCP connections owned by `Hearthstone.exe`, lets you drop the match
 | **Reconnect**            | Drop the match-server connection(s)                   |
 | **kill**                 | Drop one specific connection                          |
 | `show all` / `game only` | Toggle between all connections and match servers only |
-| **˄** / **˅**            | Collapse to compact mode / expand back                |
-| **✕**                    | Close (position and mode are saved)                   |
-| Drag an empty area       | Move the window                                       |
 
 ## Building from source
 
