@@ -1,0 +1,424 @@
+import "./fonts/Cinzel-600.ttf";
+import "./fonts/Cinzel-700.ttf";
+import "./fonts/Cinzel-800.ttf";
+
+export enum Feedback {
+    none,
+    working,
+    reconnecting,
+    not-in-game,
+    not-running,
+    failed,
+}
+
+export struct ConnRow {
+    ip: string,
+    port: string,
+    game: bool,
+}
+
+global Theme {
+    out property <color> card: #14161afa;
+    out property <color> card-border: #ffffff1c;
+    out property <color> header: #ffffff06;
+    out property <color> line: #ffffff12;
+    out property <color> row: #ffffff08;
+    out property <color> row-hover: #ffffff10;
+    out property <color> text: #e6e8eb;
+    out property <color> dim: #8b9099;
+    out property <color> accent: #e8b04b;
+    out property <color> gold: #f3d58a;
+    out property <string> display-font: "Cinzel";
+    out property <color> ok: #4ade80;
+    out property <color> warn: #fbbf24;
+    out property <color> err: #f87171;
+}
+
+component Dot inherits VerticalLayout {
+    in property <length> size: 6px;
+    in property <length> radius: self.size / 2;
+    in property <brush> color;
+    in property <float> dot-opacity: 1.0;
+
+    alignment: center;
+
+    Rectangle {
+        width: root.size;
+        height: root.size;
+        border-radius: root.radius;
+        background: root.color;
+        opacity: root.dot-opacity;
+    }
+}
+
+component MainButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <color> tint: Theme.accent;
+    callback clicked;
+
+    height: 32px;
+    border-radius: 8px;
+    background: !enabled ? tint.with-alpha(0.3)
+        : ta.pressed ? tint.darker(0.2)
+        : ta.has-hover ? tint.brighter(0.12)
+        : tint;
+    animate background { duration: 120ms; }
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.label;
+        color: #1b1405;
+        font-family: Theme.display-font;
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component IconButton inherits Rectangle {
+    in property <string> icon;
+    in property <length> size: 32px;
+    in property <bool> ghost: false;
+    callback clicked;
+
+    width: size;
+    height: size;
+    border-radius: size / 4;
+    background: ta.pressed ? Theme.accent.with-alpha(0.25) : ta.has-hover ? Theme.accent.with-alpha(0.14) : ghost ? transparent : Theme.row;
+    border-width: ghost ? 0px : 1px;
+    border-color: Theme.line;
+    animate background { duration: 120ms; }
+
+    Path {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 10px;
+        height: 10px;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        commands: root.icon;
+        stroke: ta.has-hover ? Theme.accent : Theme.dim;
+        stroke-width: 1.5px;
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component CloseButton inherits Rectangle {
+    callback clicked;
+
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: ta.pressed ? Theme.err.with-alpha(0.3) : ta.has-hover ? Theme.err.with-alpha(0.18) : Theme.row;
+    border-width: 1px;
+    border-color: Theme.line;
+    animate background { duration: 120ms; }
+
+    Path {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 10px;
+        height: 10px;
+        commands: "M 0 0 L 10 10 M 10 0 L 0 10";
+        stroke: ta.has-hover ? Theme.err : Theme.dim;
+        stroke-width: 1.5px;
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component KillButton inherits Rectangle {
+    callback clicked;
+
+    width: 42px;
+    height: 22px;
+    border-radius: 6px;
+    background: ta.pressed ? Theme.err.with-alpha(0.32) : ta.has-hover ? Theme.err.with-alpha(0.22) : Theme.err.with-alpha(0.1);
+    border-width: 1px;
+    border-color: Theme.err.with-alpha(0.25);
+    animate background { duration: 120ms; }
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: "kill";
+        color: Theme.err;
+        font-size: 11px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component ConnItem inherits Rectangle {
+    in property <ConnRow> data;
+    callback kill;
+
+    height: 34px;
+    border-radius: 8px;
+    background: data.game
+        ? (hover.has-hover ? Theme.ok.with-alpha(0.14) : Theme.ok.with-alpha(0.08))
+        : (hover.has-hover ? Theme.row-hover : Theme.row);
+    border-width: 1px;
+    border-color: data.game ? Theme.ok.with-alpha(0.28) : Theme.line;
+    animate background { duration: 150ms; }
+
+    hover := TouchArea {
+        width: parent.width;
+        height: parent.height;
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 6px;
+        spacing: 8px;
+
+        Dot {
+            color: root.data.game ? Theme.ok : Theme.dim.with-alpha(0.5);
+        }
+
+        Text {
+            text: root.data.ip;
+            font-family: "Consolas";
+            font-size: 12px;
+            color: root.data.game ? Theme.text : Theme.dim;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            text: ":" + root.data.port;
+            font-family: "Consolas";
+            font-size: 12px;
+            color: root.data.game ? Theme.ok : Theme.dim;
+            vertical-alignment: center;
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            KillButton {
+                clicked => { root.kill(); }
+            }
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    in property <[ConnRow]> rows;
+    in property <bool> elevated;
+    in property <bool> running;
+    in property <bool> show-all;
+    in property <Feedback> feedback;
+    in-out property <bool> compact: false;
+
+    callback reconnect();
+    callback elevate();
+    callback kill(int);
+    callback close-window();
+    callback toggle-show-all();
+    callback drag(length, length);
+
+    title: "HS Reconnect";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-family: "Segoe UI";
+
+    // Компактный режим: только главная кнопка, развернуть и закрыть
+    width: compact ? 280px : 300px;
+    height: compact ? 48px : 119px + max(rows.length, 1) * 40px;
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: 10px;
+        background: Theme.card;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        clip: true;
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.drag(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+            }
+        }
+
+        VerticalLayout {
+            if !root.compact: Rectangle {
+                height: 36px;
+                background: Theme.header;
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 8px;
+                    spacing: 8px;
+
+                    Text {
+                        text: "HS Reconnect";
+                        color: Theme.gold;
+                        font-family: Theme.display-font;
+                        font-size: 14px;
+                        font-weight: 800;
+                        letter-spacing: 0.5px;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+
+                        IconButton {
+                            size: 24px;
+                            ghost: true;
+                            icon: "M 1 7 L 5 3 L 9 7";
+                            clicked => { root.compact = true; }
+                        }
+                    }
+                }
+            }
+
+            if !root.compact: Rectangle {
+                height: 1px;
+                background: Theme.line;
+            }
+
+            VerticalLayout {
+                padding: root.compact ? 8px : 12px;
+                spacing: 8px;
+
+                if !root.compact: HorizontalLayout {
+                    height: 16px;
+
+                    Text {
+                        text: "CONNECTIONS";
+                        color: Theme.dim;
+                        font-family: Theme.display-font;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 1px;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+
+                    toggle := TouchArea {
+                        width: toggle-text.preferred-width;
+                        mouse-cursor: pointer;
+                        clicked => { root.toggle-show-all(); }
+
+                        toggle-text := Text {
+                            height: parent.height;
+                            text: root.show-all ? "game only" : "show all";
+                            color: toggle.has-hover ? Theme.accent : Theme.dim;
+                            font-size: 11px;
+                            vertical-alignment: center;
+                            animate color { duration: 120ms; }
+                        }
+                    }
+                }
+
+                if !root.compact: VerticalLayout {
+                    spacing: 6px;
+
+                    for row[i] in root.rows: ConnItem {
+                        data: row;
+                        kill => { root.kill(i); }
+                    }
+
+                    if root.rows.length == 0: Rectangle {
+                        height: 34px;
+                        border-radius: 8px;
+                        background: Theme.row;
+                        border-width: 1px;
+                        border-color: Theme.line;
+
+                        empty-ta := TouchArea {
+                            width: parent.width;
+                            height: parent.height;
+                            enabled: root.running && !root.show-all;
+                            mouse-cursor: self.enabled ? pointer : default;
+                            clicked => { root.toggle-show-all(); }
+                        }
+
+                        Text {
+                            x: 12px;
+                            height: parent.height;
+                            text: !root.running ? "hearthstone not running"
+                                : root.show-all ? "no connections"
+                                : "not in game  ·  show all?";
+                            color: empty-ta.has-hover ? Theme.text : Theme.dim;
+                            font-size: 11px;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    MainButton {
+                        label: !root.elevated ? "Run as Administrator"
+                            : root.feedback == Feedback.working ? "Working…"
+                            : root.feedback == Feedback.reconnecting ? "Reconnecting…"
+                            : root.feedback == Feedback.not-in-game ? "Not in game"
+                            : root.feedback == Feedback.not-running ? "Not running"
+                            : root.feedback == Feedback.failed ? "Failed"
+                            : "Reconnect";
+                        tint: root.feedback == Feedback.reconnecting ? Theme.ok
+                            : root.feedback == Feedback.failed ? Theme.err
+                            : root.feedback == Feedback.not-in-game || root.feedback == Feedback.not-running ? Theme.warn
+                            : Theme.accent;
+                        enabled: root.feedback != Feedback.working;
+                        clicked => {
+                            if (root.elevated) {
+                                root.reconnect();
+                            } else {
+                                root.elevate();
+                            }
+                        }
+                    }
+
+                    if root.compact: IconButton {
+                        icon: "M 1 3 L 5 7 L 9 3";
+                        clicked => { root.compact = false; }
+                    }
+
+                    CloseButton {
+                        clicked => { root.close-window(); }
+                    }
+                }
+            }
+        }
+    }
+}
