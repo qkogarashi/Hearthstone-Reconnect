@@ -9,7 +9,7 @@ use windows::Win32::Networking::WinSock::AF_INET;
 
 use crate::process::get_pid_by_name;
 
-const HEARTHSTONE_EXE: &str = "Hearthstone.exe";
+pub const HEARTHSTONE_EXE: &str = "Hearthstone.exe";
 const GAME_PORT: u16 = 1119;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,7 +52,7 @@ fn raw_to_ip(raw: u32) -> Ipv4Addr {
 // 137.x.x.x — Microsoft Azure (CDN)
 // 99.x.x.x  — AWS CloudFront
 fn is_persistent_server(ip: Ipv4Addr) -> bool {
-    matches!(ip.octets()[0], 34 | 35 | 52 | 18 | 137 | 99)
+    matches!(ip.octets()[0], 52 | 18 | 137 | 99)
 }
 
 #[derive(Clone, Debug)]
