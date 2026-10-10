@@ -7,7 +7,7 @@ use windows::Win32::NetworkManagement::IpHelper::{
 };
 use windows::Win32::Networking::WinSock::AF_INET;
 
-use crate::process::get_pid_by_name;
+use crate::process::{get_pid_by_name, process_path};
 
 pub const HEARTHSTONE_EXE: &str = "Hearthstone.exe";
 const GAME_PORT: u16 = 1119;
@@ -66,8 +66,39 @@ pub struct Connection {
     raw_remote_port: u32,
 }
 
+fn logged_game_server(pid: u32) -> Option<Option<(Ipv4Addr, u16)>> {
+    let logs = process_path(pid)?.parent()?.join("Logs");
+    let session = std::fs::read_dir(logs)
+        .ok()?
+        .filter_map(Result::ok)
+        .filter(|e| e.file_name().to_string_lossy().starts_with("Hearthstone_"))
+        .map(|e| e.path())
+        .max()?;
+
+    let Ok(text) = std::fs::read_to_string(session.join("GameNetLogger.log")) else {
+        return Some(None);
+    };
+    let mut last = None;
+    for line in text.lines() {
+        if line.contains("OnGameServerDisconnectEvent") {
+            last = None;
+        } else if let Some((_, rest)) = line.split_once("GotoGameServe") {
+            last = rest.split_once("address=").and_then(|(_, a)| {
+                let (ip, port) = a
+                    .split_whitespace()
+                    .next()?
+                    .trim_end_matches(',')
+                    .split_once(':')?;
+                Some((ip.parse().ok()?, port.parse().ok()?))
+            });
+        }
+    }
+    Some(last)
+}
+
 pub fn get_hs_connections() -> Option<Vec<Connection>> {
     let pid = get_pid_by_name(HEARTHSTONE_EXE)?;
+    let logged = logged_game_server(pid);
 
     let mut sz: u32 = 0;
     let mut result = Vec::new();
@@ -106,7 +137,10 @@ pub fn get_hs_connections() -> Option<Vec<Connection>> {
 
                 let port = raw_to_port(row.dw_remote_port);
                 result.push(Connection {
-                    is_game_server: port == GAME_PORT && !is_persistent_server(ip),
+                    is_game_server: match logged {
+                        Some(game) => game == Some((ip, port)),
+                        None => port == GAME_PORT && !is_persistent_server(ip),
+                    },
                     remote_ip: ip,
                     remote_port: port,
                     raw_local_addr: row.dw_local_addr,
