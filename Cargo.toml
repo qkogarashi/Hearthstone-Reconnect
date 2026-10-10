@@ -1,6 +1,6 @@
 [package]
 name = "HSReconnect"
-version = "2.0.2"
+version = "2.0.3"
 edition = "2024"
 description = "Hearthstone reconnect app"
 
